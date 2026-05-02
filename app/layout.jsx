@@ -1,3 +1,4 @@
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import fs from "node:fs";
 import path from "node:path";
@@ -18,7 +19,10 @@ export default function RootLayout({ children }) {
       <head>
         <style id="designstocker-critical-css" dangerouslySetInnerHTML={{ __html: globalCss }} />
       </head>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        {children}
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
