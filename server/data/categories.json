@@ -1,0 +1,15 @@
+[
+  { "slug": "bgremove", "name": "BG Remove", "use": "Background removal and image enhancement" },
+  { "slug": "colors", "name": "Colors", "use": "Palette generation and color exploration" },
+  { "slug": "designref", "name": "Design References", "use": "Portfolio, moodboard, and design inspiration" },
+  { "slug": "effects", "name": "Effects", "use": "Creative image and typography effects" },
+  { "slug": "fonts", "name": "Fonts", "use": "Font discovery, pairing, and downloads" },
+  { "slug": "gallery", "name": "Gallery", "use": "Niche design galleries" },
+  { "slug": "icons", "name": "Icons / Logos", "use": "SVG icons, symbols, and brand marks" },
+  { "slug": "illustration", "name": "Illustration", "use": "Open-source SVG illustrations" },
+  { "slug": "mockups", "name": "Mockups", "use": "Presenting UI, product, and brand work" },
+  { "slug": "motion", "name": "Motion", "use": "Motion graphics and UI animation" },
+  { "slug": "png", "name": "PNG / Vectors", "use": "Transparent PNGs, vectors, and clipart" },
+  { "slug": "stock", "name": "Stock Media", "use": "Photos, wallpapers, videos, and media" },
+  { "slug": "webref", "name": "Web References", "use": "Websites, app screens, and interaction ideas" }
+]

@@ -1,0 +1,47 @@
+[
+  {
+    "id": "rvw-001",
+    "resourceSlug": "mobbin",
+    "name": "Aarav",
+    "role": "UI/UX student",
+    "rating": 5,
+    "comment": "Mobbin helped me understand real onboarding flows much faster than random screenshots.",
+    "createdAt": "2026-04-20T09:00:00.000Z"
+  },
+  {
+    "id": "rvw-002",
+    "resourceSlug": "mockupworld",
+    "name": "Nisha",
+    "role": "Graphic designer",
+    "rating": 5,
+    "comment": "The mockups are clean and client-presentable. It saves a lot of searching time.",
+    "createdAt": "2026-04-22T14:30:00.000Z"
+  },
+  {
+    "id": "rvw-003",
+    "resourceSlug": "colorhunt",
+    "name": "Rohan",
+    "role": "Beginner designer",
+    "rating": 4,
+    "comment": "Good for quick palettes when I am stuck choosing colors.",
+    "createdAt": "2026-04-24T11:15:00.000Z"
+  },
+  {
+    "id": "rvw-1777524386591",
+    "resourceSlug": "mobbin",
+    "name": "Codex Test",
+    "role": "UI designer",
+    "rating": 5,
+    "comment": "Clean test review for the local browser pass.",
+    "createdAt": "2026-04-30T04:46:26.591Z"
+  },
+  {
+    "id": "rvw-1777533898649",
+    "resourceSlug": "awwwards",
+    "name": "Prince",
+    "role": "web designer",
+    "rating": 5,
+    "comment": "The website is very useful for web designer they can take reference form here its awesome website.",
+    "createdAt": "2026-04-30T07:24:58.649Z"
+  }
+]
