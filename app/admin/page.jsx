@@ -121,7 +121,7 @@ export default function AdminPage() {
           <Link href="/" className="backLink"><ArrowLeft size={16} /> Home</Link>
           <div className="adminBrand">
             <span className="brandMark">
-              <img src="/logo.png" alt="" width={20} height={20} />
+              <img src="/DS.jpg" alt="" width={30} height={30} style={{ borderRadius: "8px" }} />
             </span>
             <h1>Resource Admin</h1>
           </div>
