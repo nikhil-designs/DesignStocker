@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { categories, resources } from "@/data/resources";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const quickAmounts = {
   INR: [49, 99, 199, 499],
   USD: [1, 5, 10, 25]

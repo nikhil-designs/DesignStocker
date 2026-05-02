@@ -187,6 +187,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Internal Server Error", message: err.message });
 });
 
-app.listen(port, () => {
-  console.log(`DesignStocker API running on http://localhost:${port}`);
-});
+// Only start the server if we are running locally
+if (process.env.NODE_ENV !== "production") {
+  app.listen(port, () => {
+    console.log(`DesignStocker API running on http://localhost:${port}`);
+  });
+}
+
+// Export for Vercel
+export default app;
