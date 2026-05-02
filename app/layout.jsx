@@ -1,4 +1,6 @@
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 import fs from "node:fs";
 import path from "node:path";
@@ -22,6 +24,8 @@ export default function RootLayout({ children }) {
       <body suppressHydrationWarning>
         {children}
         <SpeedInsights />
+        <Analytics />
+        <GoogleAnalytics gaId="G-GVZWW45DDK" />
       </body>
     </html>
   );
