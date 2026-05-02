@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Sparkles, Save, ShieldCheck, ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [apiCategories, setApiCategories] = useState([]);
@@ -23,7 +25,7 @@ export default function AdminPage() {
   useEffect(() => {
     async function fetchCats() {
       try {
-        const res = await fetch("http://localhost:4000/api/resources");
+        const res = await fetch(`${API_URL}/api/resources`);
 
         const contentType = res.headers.get("content-type");
         if (!res.ok || !contentType || !contentType.includes("application/json")) {
@@ -59,7 +61,7 @@ export default function AdminPage() {
     }
 
     try {
-      const res = await fetch("http://localhost:4000/api/categories", {
+      const res = await fetch(`${API_URL}/api/categories`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -93,7 +95,7 @@ export default function AdminPage() {
     setStatus("Saving...");
 
     try {
-      const res = await fetch("http://localhost:4000/api/resources", {
+      const res = await fetch(`${API_URL}/api/resources`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
