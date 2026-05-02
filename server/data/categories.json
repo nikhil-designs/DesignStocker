@@ -1,4 +1,5 @@
 [
+  { "slug": "aidesigntool", "name": "AI Design Tools", "use": "AI powered design & Pre ready templates" },
   { "slug": "bgremove", "name": "BG Remove", "use": "Background removal and image enhancement" },
   { "slug": "colors", "name": "Colors", "use": "Palette generation and color exploration" },
   { "slug": "designref", "name": "Design References", "use": "Portfolio, moodboard, and design inspiration" },
