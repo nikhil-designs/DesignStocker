@@ -155,7 +155,13 @@ export default function Home() {
       <header className="topbar">
         <a className="brand" href="#top" aria-label="DesignStocker home">
           <span className="brandMark">
-            <img src="/DS.jpg" alt="DesignStocker logo" width={32} height={32} style={{ borderRadius: "10px" }} />
+            <img 
+              src="/DS.jpg" 
+              alt="DesignStocker logo" 
+              width={28} 
+              height={28} 
+              style={{ borderRadius: "10px", objectFit: "contain" }} 
+            />
           </span>
           DesignStocker
         </a>

@@ -86,14 +86,10 @@ footer a {
 }
 
 .brandMark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  background: #ffffff;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .navLinks {

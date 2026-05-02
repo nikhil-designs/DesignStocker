@@ -14,7 +14,7 @@ const resourcesPath = path.join(dataDir, "resources.json");
 const categoriesPath = path.join(dataDir, "categories.json");
 
 // Simple Admin Auth
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "designer-hub-admin-2026";
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "designerhubadmin2026";
 
 const app = express();
 const port = process.env.API_PORT || 4000;
@@ -42,11 +42,11 @@ function cleanText(value, maxLength) {
 }
 
 app.get("/", (req, res) => {
-  res.json({ 
-    ok: true, 
-    service: "designstocker-api", 
+  res.json({
+    ok: true,
+    service: "designstocker-api",
     version: "1.2.0",
-    message: "API is active." 
+    message: "API is active."
   });
 });
 
@@ -60,7 +60,7 @@ app.get("/api/resources", async (req, res) => {
 
   const allResources = await readJson(resourcesPath, resources);
   const allCategories = await readJson(categoriesPath, categories);
-  
+
   const filtered = allResources.filter((resource) => {
     const matchesCategory = !category || category === "all" || resource.category === category;
     const haystack = `${resource.name} ${resource.domain} ${resource.description} ${resource.category}`.toLowerCase();
@@ -110,7 +110,7 @@ app.post("/api/resources", async (req, res) => {
   }
 
   const allResources = await readJson(resourcesPath, resources);
-  
+
   // Generate slug and domain
   const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   let domain = "";
@@ -134,7 +134,7 @@ app.post("/api/resources", async (req, res) => {
   allResources.push(newResource);
   // Optional: keep it sorted
   allResources.sort((a, b) => a.name.localeCompare(b.name));
-  
+
   await writeJson(resourcesPath, allResources);
 
   res.status(201).json({ resource: newResource });
