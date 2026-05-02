@@ -9,7 +9,7 @@ export default function AdminPage() {
   const [apiCategories, setApiCategories] = useState([]);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "", use: "" });
-  
+
   const [form, setForm] = useState({
     name: "",
     href: "",
@@ -24,7 +24,7 @@ export default function AdminPage() {
     async function fetchCats() {
       try {
         const res = await fetch("http://localhost:4000/api/resources");
-        
+
         const contentType = res.headers.get("content-type");
         if (!res.ok || !contentType || !contentType.includes("application/json")) {
           throw new Error("Admin API returned non-JSON response");
@@ -57,7 +57,7 @@ export default function AdminPage() {
       setStatus("Error: Category name and use are required.");
       return;
     }
-    
+
     try {
       const res = await fetch("http://localhost:4000/api/categories", {
         method: "POST",
@@ -70,7 +70,7 @@ export default function AdminPage() {
 
       if (res.ok) {
         const data = await res.json();
-        setApiCategories(prev => [...prev, data.category].sort((a,b) => a.name.localeCompare(b.name)));
+        setApiCategories(prev => [...prev, data.category].sort((a, b) => a.name.localeCompare(b.name)));
         setForm({ ...form, category: data.category.slug });
         setIsAddingCategory(false);
         setNewCategory({ name: "", use: "" });
@@ -91,7 +91,7 @@ export default function AdminPage() {
       return;
     }
     setStatus("Saving...");
-    
+
     try {
       const res = await fetch("http://localhost:4000/api/resources", {
         method: "POST",
@@ -121,7 +121,7 @@ export default function AdminPage() {
           <Link href="/" className="backLink"><ArrowLeft size={16} /> Home</Link>
           <div className="adminBrand">
             <span className="brandMark">
-              <img src="/DS.jpg" alt="" width={30} height={30} style={{ borderRadius: "8px" }} />
+              <img src="/DS.jpg" alt="" width={32} height={32} style={{ borderRadius: "9px" }} />
             </span>
             <h1>Resource Admin</h1>
           </div>
@@ -131,9 +131,9 @@ export default function AdminPage() {
         <form onSubmit={handleSubmit} className="adminForm">
           <div className="inputGroup">
             <label>Admin Password</label>
-            <input 
-              type="password" 
-              placeholder="Enter secret key..." 
+            <input
+              type="password"
+              placeholder="Enter secret key..."
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -143,21 +143,21 @@ export default function AdminPage() {
           <div className="formGrid">
             <div className="inputGroup">
               <label>Website Name</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Dribbble" 
+              <input
+                type="text"
+                placeholder="e.g. Dribbble"
                 value={form.name}
-                onChange={(e) => setForm({...form, name: e.target.value})}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required={!isAddingCategory}
               />
             </div>
             <div className="inputGroup">
               <label>Website Link</label>
-              <input 
-                type="url" 
-                placeholder="https://..." 
+              <input
+                type="url"
+                placeholder="https://..."
                 value={form.href}
-                onChange={(e) => setForm({...form, href: e.target.value})}
+                onChange={(e) => setForm({ ...form, href: e.target.value })}
                 required={!isAddingCategory}
               />
             </div>
@@ -166,7 +166,7 @@ export default function AdminPage() {
           <div className="formGrid">
             <div className="inputGroup">
               <label>Category</label>
-              <select 
+              <select
                 value={isAddingCategory ? "NEW_CATEGORY" : form.category}
                 onChange={handleCategoryChange}
               >
@@ -176,13 +176,13 @@ export default function AdminPage() {
             </div>
             <div className="inputGroup">
               <label>Rating (1-5)</label>
-              <input 
-                type="number" 
+              <input
+                type="number"
                 step="0.1"
                 min="1"
                 max="5"
                 value={form.rating}
-                onChange={(e) => setForm({...form, rating: e.target.value})}
+                onChange={(e) => setForm({ ...form, rating: e.target.value })}
               />
             </div>
           </div>
@@ -192,20 +192,20 @@ export default function AdminPage() {
               <h3>Create New Category</h3>
               <div className="inputGroup">
                 <label>Category Name</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. 3D Assets" 
+                <input
+                  type="text"
+                  placeholder="e.g. 3D Assets"
                   value={newCategory.name}
-                  onChange={(e) => setNewCategory({...newCategory, name: e.target.value})}
+                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
                 />
               </div>
               <div className="inputGroup">
                 <label>Usage (Short description)</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. High-quality 3D models and textures" 
+                <input
+                  type="text"
+                  placeholder="e.g. High-quality 3D models and textures"
                   value={newCategory.use}
-                  onChange={(e) => setNewCategory({...newCategory, use: e.target.value})}
+                  onChange={(e) => setNewCategory({ ...newCategory, use: e.target.value })}
                 />
               </div>
               <button type="button" onClick={handleCreateCategory} className="createCatBtn">
@@ -215,22 +215,22 @@ export default function AdminPage() {
           )}
 
           <div className="inputGroup checkbox">
-            <input 
-              type="checkbox" 
+            <input
+              type="checkbox"
               id="topPick"
               checked={form.featured}
-              onChange={(e) => setForm({...form, featured: e.target.checked})}
+              onChange={(e) => setForm({ ...form, featured: e.target.checked })}
             />
             <label htmlFor="topPick">Mark as "Top Pick"</label>
           </div>
 
           <div className="inputGroup">
             <label>Description</label>
-            <textarea 
+            <textarea
               rows="3"
               placeholder="What is this website used for? (max 300 chars)"
               value={form.description}
-              onChange={(e) => setForm({...form, description: e.target.value})}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
               required
             ></textarea>
           </div>
