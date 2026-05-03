@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Save, ShieldCheck, ArrowLeft, Plus } from "lucide-react";
+import { Sparkles, Save, ShieldCheck, ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -9,6 +9,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export default function AdminPage() {
   const [password, setPassword] = useState("");
   const [apiCategories, setApiCategories] = useState([]);
+  const [apiResources, setApiResources] = useState([]);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState({ name: "", use: "" });
 
@@ -21,28 +22,32 @@ export default function AdminPage() {
     description: ""
   });
   const [status, setStatus] = useState("");
+  const [viewTab, setViewTab] = useState("add"); // "add" or "manage"
 
   useEffect(() => {
-    async function fetchCats() {
-      try {
-        const res = await fetch(`${API_URL}/api/resources`);
-
-        const contentType = res.headers.get("content-type");
-        if (!res.ok || !contentType || !contentType.includes("application/json")) {
-          throw new Error("Admin API returned non-JSON response");
-        }
-
-        const data = await res.json();
-        setApiCategories(data.categories);
-        if (data.categories.length > 0) {
-          setForm(prev => ({ ...prev, category: data.categories[0].slug }));
-        }
-      } catch (err) {
-        console.warn("[Admin] Failed to fetch live categories:", err.message);
-      }
-    }
-    fetchCats();
+    fetchData();
   }, []);
+
+  async function fetchData() {
+    try {
+      const res = await fetch(`${API_URL}/api/resources`);
+
+      const contentType = res.headers.get("content-type");
+      if (!res.ok || !contentType || !contentType.includes("application/json")) {
+        throw new Error("Admin API returned non-JSON response");
+      }
+
+      const data = await res.json();
+      setApiCategories(data.categories || []);
+      setApiResources(data.resources || []);
+      
+      if (data.categories && data.categories.length > 0 && !form.category) {
+        setForm(prev => ({ ...prev, category: data.categories[0].slug }));
+      }
+    } catch (err) {
+      console.warn("[Admin] Failed to fetch live data:", err.message);
+    }
+  }
 
   const handleCategoryChange = (e) => {
     const val = e.target.value;
@@ -71,12 +76,10 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        setApiCategories(prev => [...prev, data.category].sort((a, b) => a.name.localeCompare(b.name)));
-        setForm({ ...form, category: data.category.slug });
+        setStatus("Category created!");
         setIsAddingCategory(false);
         setNewCategory({ name: "", use: "" });
-        setStatus("Category created!");
+        await fetchData(); // Refresh everything to get exact A-Z sorting
       } else {
         const err = await res.json();
         setStatus(`Error: ${err.message}`);
@@ -107,12 +110,53 @@ export default function AdminPage() {
       if (res.ok) {
         setStatus("Success! Resource added.");
         setForm({ ...form, name: "", href: "", rating: 5, featured: false, description: "" });
+        await fetchData(); // Refresh the list automatically
       } else {
         const err = await res.json();
         setStatus(`Error: ${err.message}`);
       }
     } catch (err) {
       setStatus("Failed to connect to API.");
+    }
+  };
+
+  const handleDeleteResource = async (slug) => {
+    if (!confirm("Are you sure you want to delete this website?")) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/resources/${slug}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${password}` }
+      });
+      if (res.ok) {
+        setStatus("Website deleted successfully.");
+        await fetchData();
+      } else {
+        const err = await res.json();
+        setStatus(`Error: ${err.message || "Could not delete"}`);
+      }
+    } catch (err) {
+      setStatus("Failed to delete.");
+    }
+  };
+
+  const handleDeleteCategory = async (slug) => {
+    if (!confirm("Are you sure you want to delete this category? (Make sure no websites are using it!)")) return;
+    
+    try {
+      const res = await fetch(`${API_URL}/api/categories/${slug}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${password}` }
+      });
+      if (res.ok) {
+        setStatus("Category deleted successfully.");
+        await fetchData();
+      } else {
+        const err = await res.json();
+        setStatus(`Error: ${err.message || "Could not delete"}`);
+      }
+    } catch (err) {
+      setStatus("Failed to delete.");
     }
   };
 
@@ -133,122 +177,171 @@ export default function AdminPage() {
             </span>
             <h1>Resource Admin</h1>
           </div>
-          <p>Add new design websites to the library</p>
+          <p>Manage your design directory seamlessly</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="adminForm">
-          <div className="inputGroup">
-            <label>Admin Password</label>
-            <input
-              type="password"
-              placeholder="Enter secret key..."
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+        <div className="inputGroup" style={{ marginBottom: "20px" }}>
+          <label>Admin Password</label>
+          <input
+            type="password"
+            placeholder="Enter secret key to make changes..."
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
 
-          <div className="formGrid">
-            <div className="inputGroup">
-              <label>Website Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Dribbble"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required={!isAddingCategory}
-              />
-            </div>
-            <div className="inputGroup">
-              <label>Website Link</label>
-              <input
-                type="url"
-                placeholder="https://..."
-                value={form.href}
-                onChange={(e) => setForm({ ...form, href: e.target.value })}
-                required={!isAddingCategory}
-              />
-            </div>
-          </div>
-
-          <div className="formGrid">
-            <div className="inputGroup">
-              <label>Category</label>
-              <select
-                value={isAddingCategory ? "NEW_CATEGORY" : form.category}
-                onChange={handleCategoryChange}
-              >
-                {apiCategories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-                <option value="NEW_CATEGORY">+ Add a new category</option>
-              </select>
-            </div>
-            <div className="inputGroup">
-              <label>Rating (1-5)</label>
-              <input
-                type="number"
-                step="0.1"
-                min="1"
-                max="5"
-                value={form.rating}
-                onChange={(e) => setForm({ ...form, rating: e.target.value })}
-              />
-            </div>
-          </div>
-
-          {isAddingCategory && (
-            <div className="newCategorySection">
-              <h3>Create New Category</h3>
-              <div className="inputGroup">
-                <label>Category Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. 3D Assets"
-                  value={newCategory.name}
-                  onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                />
-              </div>
-              <div className="inputGroup">
-                <label>Usage (Short description)</label>
-                <input
-                  type="text"
-                  placeholder="e.g. High-quality 3D models and textures"
-                  value={newCategory.use}
-                  onChange={(e) => setNewCategory({ ...newCategory, use: e.target.value })}
-                />
-              </div>
-              <button type="button" onClick={handleCreateCategory} className="createCatBtn">
-                <Plus size={16} /> Confirm New Category
-              </button>
-            </div>
-          )}
-
-          <div className="inputGroup checkbox">
-            <input
-              type="checkbox"
-              id="topPick"
-              checked={form.featured}
-              onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-            />
-            <label htmlFor="topPick">Mark as "Top Pick"</label>
-          </div>
-
-          <div className="inputGroup">
-            <label>Description</label>
-            <textarea
-              rows="3"
-              placeholder="What is this website used for? (max 300 chars)"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              required
-            ></textarea>
-          </div>
-
-          <button type="submit" className="adminBtn">
-            <Save size={18} /> Save Resource
+        <div className="tabs">
+          <button 
+            className={viewTab === "add" ? "active" : ""} 
+            onClick={() => setViewTab("add")}
+          >
+            Add New
           </button>
+          <button 
+            className={viewTab === "manage" ? "active" : ""} 
+            onClick={() => setViewTab("manage")}
+          >
+            Manage Data
+          </button>
+        </div>
 
-          {status && <div className={`statusNotice ${status.includes("Success") ? "success" : "error"}`}>{status}</div>}
-        </form>
+        {status && <div className={`statusNotice ${status.includes("Success") || status.includes("deleted") || status.includes("created") ? "success" : "error"}`}>{status}</div>}
+
+        {viewTab === "add" ? (
+          <form onSubmit={handleSubmit} className="adminForm">
+            <div className="formGrid">
+              <div className="inputGroup">
+                <label>Website Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Dribbble"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required={!isAddingCategory}
+                />
+              </div>
+              <div className="inputGroup">
+                <label>Website Link</label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={form.href}
+                  onChange={(e) => setForm({ ...form, href: e.target.value })}
+                  required={!isAddingCategory}
+                />
+              </div>
+            </div>
+
+            <div className="formGrid">
+              <div className="inputGroup">
+                <label>Category</label>
+                <select
+                  value={isAddingCategory ? "NEW_CATEGORY" : form.category}
+                  onChange={handleCategoryChange}
+                >
+                  {apiCategories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                  <option value="NEW_CATEGORY">+ Add a new category</option>
+                </select>
+              </div>
+              <div className="inputGroup">
+                <label>Rating (1-5)</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="5"
+                  value={form.rating}
+                  onChange={(e) => setForm({ ...form, rating: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {isAddingCategory && (
+              <div className="newCategorySection">
+                <h3>Create New Category</h3>
+                <div className="inputGroup">
+                  <label>Category Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 3D Assets"
+                    value={newCategory.name}
+                    onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
+                  />
+                </div>
+                <div className="inputGroup">
+                  <label>Usage (Short description)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. High-quality 3D models and textures"
+                    value={newCategory.use}
+                    onChange={(e) => setNewCategory({ ...newCategory, use: e.target.value })}
+                  />
+                </div>
+                <button type="button" onClick={handleCreateCategory} className="createCatBtn">
+                  <Plus size={16} /> Confirm New Category
+                </button>
+              </div>
+            )}
+
+            <div className="inputGroup checkbox">
+              <input
+                type="checkbox"
+                id="topPick"
+                checked={form.featured}
+                onChange={(e) => setForm({ ...form, featured: e.target.checked })}
+              />
+              <label htmlFor="topPick">Mark as "Top Pick"</label>
+            </div>
+
+            <div className="inputGroup">
+              <label>Description</label>
+              <textarea
+                rows="3"
+                placeholder="What is this website used for? (max 300 chars)"
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                required
+              ></textarea>
+            </div>
+
+            <button type="submit" className="adminBtn">
+              <Save size={18} /> Save Resource
+            </button>
+          </form>
+        ) : (
+          <div className="manageSection">
+            <h3>Manage Websites</h3>
+            <div className="manageList">
+              {apiResources.map(res => (
+                <div key={res.slug} className="manageItem">
+                  <div>
+                    <strong>{res.name}</strong>
+                    <span>{apiCategories.find(c => c.slug === res.category)?.name}</span>
+                  </div>
+                  <button onClick={() => handleDeleteResource(res.slug)} title="Delete Website">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            <h3 style={{ marginTop: "30px" }}>Manage Categories</h3>
+            <div className="manageList">
+              {apiCategories.map(cat => (
+                <div key={cat.slug} className="manageItem">
+                  <div>
+                    <strong>{cat.name}</strong>
+                    <span>{apiResources.filter(r => r.category === cat.slug).length} websites</span>
+                  </div>
+                  <button onClick={() => handleDeleteCategory(cat.slug)} title="Delete Category">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -262,7 +355,7 @@ export default function AdminPage() {
         }
         .adminBox {
           width: 100%;
-          max-width: 500px;
+          max-width: 550px;
           background: white;
           border: 1px solid var(--line);
           border-radius: 16px;
@@ -290,6 +383,28 @@ export default function AdminPage() {
           text-decoration: none;
           font-size: 0.85rem;
           margin-bottom: 16px;
+        }
+        .tabs {
+          display: flex;
+          background: var(--surface-soft);
+          padding: 4px;
+          border-radius: 10px;
+          margin-bottom: 24px;
+        }
+        .tabs button {
+          flex: 1;
+          padding: 10px;
+          background: transparent;
+          border: none;
+          font-weight: 600;
+          color: var(--muted);
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .tabs button.active {
+          background: white;
+          color: var(--ink);
+          box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
         .adminForm { display: flex; flex-direction: column; gap: 20px; }
         .formGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -326,6 +441,7 @@ export default function AdminPage() {
           text-align: center;
           font-size: 0.9rem;
           font-weight: 600;
+          margin-bottom: 16px;
         }
         .statusNotice.success { background: #f0fec7; color: #142413; }
         .statusNotice.error { background: #fee2e2; color: #991b1b; }
@@ -354,7 +470,52 @@ export default function AdminPage() {
           justify-content: center;
           gap: 6px;
         }
+
+        .manageSection h3 {
+          font-size: 1.1rem;
+          margin-bottom: 16px;
+          border-bottom: 1px solid var(--line);
+          padding-bottom: 8px;
+        }
+        .manageList {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          max-height: 300px;
+          overflow-y: auto;
+          padding-right: 8px;
+        }
+        .manageItem {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px;
+          background: var(--surface-soft);
+          border: 1px solid var(--line);
+          border-radius: 8px;
+        }
+        .manageItem div {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+        .manageItem strong { font-size: 0.95rem; }
+        .manageItem span { font-size: 0.8rem; color: var(--muted); }
+        .manageItem button {
+          background: #fee2e2;
+          color: #991b1b;
+          border: none;
+          padding: 8px;
+          border-radius: 6px;
+          cursor: pointer;
+          display: grid;
+          place-items: center;
+        }
+        .manageItem button:hover {
+          background: #fca5a5;
+        }
       `}</style>
     </main>
   );
 }
+

@@ -114,9 +114,9 @@ app.get("/api/resources", async (req, res) => {
     const { category, q } = req.query;
     const query = cleanText(q, 80).toLowerCase();
 
-    // Fetch everything from DB
-    const allCategories = await Category.find().lean();
-    let allResources = await Resource.find().lean();
+    // Fetch everything from DB, sorted A-Z case-insensitively
+    const allCategories = await Category.find().collation({ locale: "en", strength: 2 }).sort({ name: 1 }).lean();
+    let allResources = await Resource.find().collation({ locale: "en", strength: 2 }).sort({ name: 1 }).lean();
 
     const filtered = allResources.filter((resource) => {
       const matchesCategory = !category || category === "all" || resource.category === category;
@@ -202,6 +202,36 @@ app.post("/api/resources", async (req, res) => {
     if (err.code === 11000) {
       return res.status(400).json({ message: "A resource with that name already exists." });
     }
+    res.status(500).json({ message: "Database error." });
+  }
+});
+
+app.delete("/api/categories/:slug", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${ADMIN_SECRET}`) {
+    return res.status(401).json({ message: "Unauthorized. Admin access only." });
+  }
+
+  try {
+    await connectToDatabase();
+    await Category.deleteOne({ slug: req.params.slug });
+    res.json({ message: "Category deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: "Database error." });
+  }
+});
+
+app.delete("/api/resources/:slug", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${ADMIN_SECRET}`) {
+    return res.status(401).json({ message: "Unauthorized. Admin access only." });
+  }
+
+  try {
+    await connectToDatabase();
+    await Resource.deleteOne({ slug: req.params.slug });
+    res.json({ message: "Resource deleted successfully" });
+  } catch (err) {
     res.status(500).json({ message: "Database error." });
   }
 });
