@@ -222,15 +222,15 @@ export default function Home() {
 
         <div className="categoryRail" aria-label="Filter categories">
           <button className={activeCategory === "all" ? "active" : ""} onClick={() => setActiveCategory("all")}>
-            All <span>{resources.length}</span>
+            All <span>{apiResources.length}</span>
           </button>
-          {categories.map((category) => (
+          {apiCategories.map((category) => (
             <button
               className={activeCategory === category.slug ? "active" : ""}
               key={category.slug}
               onClick={() => setActiveCategory(category.slug)}
             >
-              {category.name} <span>{resources.filter((resource) => resource.category === category.slug).length}</span>
+              {category.name} <span>{apiResources.filter((resource) => resource.category === category.slug).length}</span>
             </button>
           ))}
         </div>
@@ -286,7 +286,7 @@ export default function Home() {
                 </div>
                 <p>{review.comment}</p>
                 <span>
-                  {review.role} reviewing {resources.find((resource) => resource.slug === review.resourceSlug)?.name}
+                  {review.role} reviewing {apiResources.find((resource) => resource.slug === review.resourceSlug)?.name}
                 </span>
               </article>
             ))}
@@ -301,7 +301,7 @@ export default function Home() {
               value={reviewForm.resourceSlug}
               onChange={(event) => setReviewForm({ ...reviewForm, resourceSlug: event.target.value })}
             >
-              {resources.map((resource) => (
+              {apiResources.map((resource) => (
                 <option key={resource.slug} value={resource.slug}>{resource.name}</option>
               ))}
             </select>

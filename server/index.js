@@ -41,7 +41,8 @@ async function connectToDatabase() {
 const categorySchema = new mongoose.Schema({
   slug: { type: String, required: true, unique: true },
   name: { type: String, required: true },
-  use: { type: String, required: true }
+  use: { type: String, required: true },
+  order: { type: Number, default: 0 }
 });
 
 const resourceSchema = new mongoose.Schema({
@@ -52,7 +53,8 @@ const resourceSchema = new mongoose.Schema({
   domain: { type: String, required: true },
   rating: { type: Number, default: 0 },
   featured: { type: Boolean, default: false },
-  description: { type: String, required: true }
+  description: { type: String, required: true },
+  order: { type: Number, default: 0 }
 });
 
 const reviewSchema = new mongoose.Schema({
@@ -114,9 +116,9 @@ app.get("/api/resources", async (req, res) => {
     const { category, q } = req.query;
     const query = cleanText(q, 80).toLowerCase();
 
-    // Fetch everything from DB, sorted A-Z case-insensitively
-    const allCategories = await Category.find().collation({ locale: "en", strength: 2 }).sort({ name: 1 }).lean();
-    let allResources = await Resource.find().collation({ locale: "en", strength: 2 }).sort({ name: 1 }).lean();
+    // Fetch everything from DB, sorted by order then A-Z case-insensitively
+    const allCategories = await Category.find().collation({ locale: "en", strength: 2 }).sort({ order: 1, name: 1 }).lean();
+    let allResources = await Resource.find().collation({ locale: "en", strength: 2 }).sort({ order: 1, name: 1 }).lean();
 
     const filtered = allResources.filter((resource) => {
       const matchesCategory = !category || category === "all" || resource.category === category;
@@ -233,6 +235,36 @@ app.delete("/api/resources/:slug", async (req, res) => {
     res.json({ message: "Resource deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: "Database error." });
+  }
+});
+
+app.put("/api/categories/reorder", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${ADMIN_SECRET}`) return res.status(401).json({ message: "Unauthorized." });
+  try {
+    await connectToDatabase();
+    const { updates } = req.body;
+    for (const update of updates) {
+      await Category.updateOne({ slug: update.slug }, { $set: { order: update.order } });
+    }
+    res.json({ message: "Reordered" });
+  } catch (err) {
+    res.status(500).json({ message: "DB Error" });
+  }
+});
+
+app.put("/api/resources/reorder", async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader !== `Bearer ${ADMIN_SECRET}`) return res.status(401).json({ message: "Unauthorized." });
+  try {
+    await connectToDatabase();
+    const { updates } = req.body;
+    for (const update of updates) {
+      await Resource.updateOne({ slug: update.slug }, { $set: { order: update.order } });
+    }
+    res.json({ message: "Reordered" });
+  } catch (err) {
+    res.status(500).json({ message: "DB Error" });
   }
 });
 

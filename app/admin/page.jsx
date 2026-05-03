@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Sparkles, Save, ShieldCheck, ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { Sparkles, Save, ShieldCheck, ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
 import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -160,6 +160,62 @@ export default function AdminPage() {
     }
   };
 
+  const handleDragOver = (e) => e.preventDefault();
+
+  const handleResDrop = async (e, dropIndex) => {
+    e.preventDefault();
+    if (!password) {
+      setStatus("Error: Admin password required to reorder.");
+      return;
+    }
+    const dragIndex = Number(e.dataTransfer.getData("resIndex"));
+    if (dragIndex === dropIndex || isNaN(dragIndex)) return;
+
+    const newItems = [...apiResources];
+    const [moved] = newItems.splice(dragIndex, 1);
+    newItems.splice(dropIndex, 0, moved);
+    setApiResources(newItems);
+
+    const updates = newItems.map((r, idx) => ({ slug: r.slug, order: idx }));
+    try {
+      await fetch(`${API_URL}/api/resources/reorder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${password}` },
+        body: JSON.stringify({ updates })
+      });
+      setStatus("Website order saved.");
+    } catch (err) {
+      setStatus("Failed to save order.");
+    }
+  };
+
+  const handleCatDrop = async (e, dropIndex) => {
+    e.preventDefault();
+    if (!password) {
+      setStatus("Error: Admin password required to reorder.");
+      return;
+    }
+    const dragIndex = Number(e.dataTransfer.getData("catIndex"));
+    if (dragIndex === dropIndex || isNaN(dragIndex)) return;
+
+    const newItems = [...apiCategories];
+    const [moved] = newItems.splice(dragIndex, 1);
+    newItems.splice(dropIndex, 0, moved);
+    setApiCategories(newItems);
+
+    const updates = newItems.map((c, idx) => ({ slug: c.slug, order: idx }));
+    try {
+      await fetch(`${API_URL}/api/categories/reorder`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${password}` },
+        body: JSON.stringify({ updates })
+      });
+      setStatus("Category order saved.");
+    } catch (err) {
+      setStatus("Failed to save order.");
+    }
+  };
+
   return (
     <main className="adminContainer">
       <div className="adminBox">
@@ -311,30 +367,46 @@ export default function AdminPage() {
           </form>
         ) : (
           <div className="manageSection">
-            <h3>Manage Websites</h3>
+            <h3>Manage Websites <span className="helpText">(Drag to reorder)</span></h3>
             <div className="manageList">
-              {apiResources.map(res => (
-                <div key={res.slug} className="manageItem">
-                  <div>
+              {apiResources.map((res, index) => (
+                <div 
+                  key={res.slug} 
+                  className="manageItem"
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData("resIndex", index)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleResDrop(e, index)}
+                >
+                  <div className="dragHandle" title="Drag to reorder"><GripVertical size={16} /></div>
+                  <div style={{ flex: 1 }}>
                     <strong>{res.name}</strong>
                     <span>{apiCategories.find(c => c.slug === res.category)?.name}</span>
                   </div>
-                  <button onClick={() => handleDeleteResource(res.slug)} title="Delete Website">
+                  <button onClick={() => handleDeleteResource(res.slug)} title="Delete Website" className="deleteBtn">
                     <Trash2 size={16} />
                   </button>
                 </div>
               ))}
             </div>
 
-            <h3 style={{ marginTop: "30px" }}>Manage Categories</h3>
+            <h3 style={{ marginTop: "30px" }}>Manage Categories <span className="helpText">(Drag to reorder)</span></h3>
             <div className="manageList">
-              {apiCategories.map(cat => (
-                <div key={cat.slug} className="manageItem">
-                  <div>
+              {apiCategories.map((cat, index) => (
+                <div 
+                  key={cat.slug} 
+                  className="manageItem"
+                  draggable
+                  onDragStart={(e) => e.dataTransfer.setData("catIndex", index)}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleCatDrop(e, index)}
+                >
+                  <div className="dragHandle" title="Drag to reorder"><GripVertical size={16} /></div>
+                  <div style={{ flex: 1 }}>
                     <strong>{cat.name}</strong>
                     <span>{apiResources.filter(r => r.category === cat.slug).length} websites</span>
                   </div>
-                  <button onClick={() => handleDeleteCategory(cat.slug)} title="Delete Category">
+                  <button onClick={() => handleDeleteCategory(cat.slug)} title="Delete Category" className="deleteBtn">
                     <Trash2 size={16} />
                   </button>
                 </div>
@@ -476,6 +548,14 @@ export default function AdminPage() {
           margin-bottom: 16px;
           border-bottom: 1px solid var(--line);
           padding-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .helpText {
+          font-size: 0.8rem;
+          color: var(--muted);
+          font-weight: 400;
         }
         .manageList {
           display: flex;
@@ -488,12 +568,24 @@ export default function AdminPage() {
         .manageItem {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          gap: 12px;
           padding: 12px;
           background: var(--surface-soft);
           border: 1px solid var(--line);
           border-radius: 8px;
+          transition: transform 0.1s, box-shadow 0.1s;
         }
+        .manageItem:active {
+          transform: scale(0.98);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .dragHandle {
+          color: var(--muted);
+          cursor: grab;
+          display: grid;
+          place-items: center;
+        }
+        .dragHandle:active { cursor: grabbing; }
         .manageItem div {
           display: flex;
           flex-direction: column;
@@ -501,7 +593,7 @@ export default function AdminPage() {
         }
         .manageItem strong { font-size: 0.95rem; }
         .manageItem span { font-size: 0.8rem; color: var(--muted); }
-        .manageItem button {
+        .deleteBtn {
           background: #fee2e2;
           color: #991b1b;
           border: none;
@@ -511,7 +603,7 @@ export default function AdminPage() {
           display: grid;
           place-items: center;
         }
-        .manageItem button:hover {
+        .deleteBtn:hover {
           background: #fca5a5;
         }
       `}</style>
