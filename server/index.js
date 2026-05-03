@@ -1,74 +1,135 @@
 import cors from "cors";
 import express from "express";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import mongoose from "mongoose";
 import { categories, resources } from "./data/resources.js";
 import { getStats, seedReviews } from "./data/seed.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const dataDir = path.join(__dirname, "data");
-const reviewsPath = path.join(dataDir, "reviews.json");
-const resourcesPath = path.join(dataDir, "resources.json");
-const categoriesPath = path.join(dataDir, "categories.json");
 
 // Simple Admin Auth
 const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 const app = express();
-const port = process.env.API_PORT;
+const port = process.env.API_PORT || 4000;
 
 app.use(cors({ origin: process.env.WEB_ORIGIN }));
 app.use(express.json({ limit: "32kb" }));
 
-async function readJson(filePath, fallback) {
-  try {
-    return JSON.parse(await readFile(filePath, "utf8"));
-  } catch {
-    await mkdir(dataDir, { recursive: true });
-    await writeFile(filePath, JSON.stringify(fallback, null, 2));
-    return fallback;
-  }
+// --- MongoDB Setup ---
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.warn("MONGODB_URI is not defined. The app will fail to connect.");
 }
 
-async function writeJson(filePath, data) {
-  await mkdir(dataDir, { recursive: true });
-  await writeFile(filePath, JSON.stringify(data, null, 2));
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedDb) return cachedDb;
+  if (mongoose.connection.readyState === 1) {
+    cachedDb = mongoose.connection;
+    return cachedDb;
+  }
+  const conn = await mongoose.connect(MONGODB_URI);
+  cachedDb = conn.connection;
+  
+  // Seed initial data if the database is completely empty
+  await seedDatabaseIfNeeded();
+  
+  return cachedDb;
+}
+
+// --- Mongoose Models ---
+const categorySchema = new mongoose.Schema({
+  slug: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  use: { type: String, required: true }
+});
+
+const resourceSchema = new mongoose.Schema({
+  slug: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  href: { type: String, required: true },
+  category: { type: String, required: true },
+  domain: { type: String, required: true },
+  rating: { type: Number, default: 0 },
+  featured: { type: Boolean, default: false },
+  description: { type: String, required: true }
+});
+
+const reviewSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  resourceSlug: { type: String, required: true },
+  name: { type: String, required: true },
+  role: { type: String, required: true },
+  rating: { type: Number, required: true },
+  comment: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const Category = mongoose.models.Category || mongoose.model("Category", categorySchema);
+const Resource = mongoose.models.Resource || mongoose.model("Resource", resourceSchema);
+const Review = mongoose.models.Review || mongoose.model("Review", reviewSchema);
+
+// --- Seed Database if Empty ---
+async function seedDatabaseIfNeeded() {
+  try {
+    const resourceCount = await Resource.countDocuments();
+    if (resourceCount === 0) {
+      console.log("Database is empty! Seeding existing local data...");
+      await Category.insertMany(categories);
+      await Resource.insertMany(resources);
+      await Review.insertMany(seedReviews.map((r, i) => ({ ...r, id: `seed-rvw-${i}` })));
+      console.log("Seeding complete!");
+    }
+  } catch (err) {
+    console.error("Error seeding database:", err);
+  }
 }
 
 function cleanText(value, maxLength) {
   return String(value || "").trim().replace(/\s+/g, " ").slice(0, maxLength);
 }
 
-app.get("/", (req, res) => {
+// --- Routes ---
+app.get("/", async (req, res) => {
   res.json({
     ok: true,
     service: "designstocker-api",
-    version: "1.2.0",
+    version: "2.0.0 (MongoDB)",
     message: "API is active."
   });
 });
 
-app.get("/api/health", (req, res) => {
-  res.json({ ok: true, service: "designstocker-api" });
+app.get("/api/health", async (req, res) => {
+  try {
+    await connectToDatabase();
+    res.json({ ok: true, service: "designstocker-api", database: "connected" });
+  } catch (err) {
+    res.status(500).json({ ok: false, service: "designstocker-api", database: "disconnected" });
+  }
 });
 
 app.get("/api/resources", async (req, res) => {
-  const { category, q } = req.query;
-  const query = cleanText(q, 80).toLowerCase();
+  try {
+    await connectToDatabase();
+    const { category, q } = req.query;
+    const query = cleanText(q, 80).toLowerCase();
 
-  const allResources = await readJson(resourcesPath, resources);
-  const allCategories = await readJson(categoriesPath, categories);
+    // Fetch everything from DB
+    const allCategories = await Category.find().lean();
+    let allResources = await Resource.find().lean();
 
-  const filtered = allResources.filter((resource) => {
-    const matchesCategory = !category || category === "all" || resource.category === category;
-    const haystack = `${resource.name} ${resource.domain} ${resource.description} ${resource.category}`.toLowerCase();
-    const matchesQuery = !query || haystack.includes(query);
-    return matchesCategory && matchesQuery;
-  });
+    const filtered = allResources.filter((resource) => {
+      const matchesCategory = !category || category === "all" || resource.category === category;
+      const haystack = `${resource.name} ${resource.domain} ${resource.description} ${resource.category}`.toLowerCase();
+      const matchesQuery = !query || haystack.includes(query);
+      return matchesCategory && matchesQuery;
+    });
 
-  res.json({ categories: allCategories, resources: filtered, stats: getStats() });
+    // Send original stats or calculate dynamically
+    res.json({ categories: allCategories, resources: filtered, stats: getStats() });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch resources" });
+  }
 });
 
 app.post("/api/categories", async (req, res) => {
@@ -82,19 +143,22 @@ app.post("/api/categories", async (req, res) => {
     return res.status(400).json({ message: "Category name and usage description are required." });
   }
 
-  const allCategories = await readJson(categoriesPath, categories);
-  const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+  try {
+    await connectToDatabase();
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  if (allCategories.some(c => c.slug === slug)) {
-    return res.status(400).json({ message: "Category already exists." });
+    const existing = await Category.findOne({ slug });
+    if (existing) {
+      return res.status(400).json({ message: "Category already exists." });
+    }
+
+    const newCategory = new Category({ slug, name, use: cleanText(use, 100) });
+    await newCategory.save();
+    
+    res.status(201).json({ category: newCategory });
+  } catch (err) {
+    res.status(500).json({ message: "Database error." });
   }
-
-  const newCategory = { slug, name, use: cleanText(use, 100) };
-  allCategories.push(newCategory);
-  allCategories.sort((a, b) => a.name.localeCompare(b.name));
-
-  await writeJson(categoriesPath, allCategories);
-  res.status(201).json({ category: newCategory });
 });
 
 app.post("/api/resources", async (req, res) => {
@@ -109,71 +173,82 @@ app.post("/api/resources", async (req, res) => {
     return res.status(400).json({ message: "Name, link, category, and description are required." });
   }
 
-  const allResources = await readJson(resourcesPath, resources);
-
-  // Generate slug and domain
-  const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
-  let domain = "";
   try {
-    domain = new URL(href).hostname.replace("www.", "");
-  } catch {
-    domain = href;
+    await connectToDatabase();
+    
+    // Generate slug and domain
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    let domain = "";
+    try {
+      domain = new URL(href).hostname.replace("www.", "");
+    } catch {
+      domain = href;
+    }
+
+    const newResource = new Resource({
+      category,
+      href,
+      slug,
+      name,
+      domain,
+      rating: Number(rating) || 0,
+      featured: !!featured,
+      description: cleanText(description, 300)
+    });
+
+    await newResource.save();
+    res.status(201).json({ resource: newResource });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "A resource with that name already exists." });
+    }
+    res.status(500).json({ message: "Database error." });
   }
-
-  const newResource = {
-    category,
-    href,
-    slug,
-    name,
-    domain,
-    rating: Number(rating) || 0,
-    featured: !!featured,
-    description: cleanText(description, 300)
-  };
-
-  allResources.push(newResource);
-  // Optional: keep it sorted
-  allResources.sort((a, b) => a.name.localeCompare(b.name));
-
-  await writeJson(resourcesPath, allResources);
-
-  res.status(201).json({ resource: newResource });
 });
 
 app.get("/api/reviews", async (req, res) => {
-  const reviews = await readJson(reviewsPath, seedReviews);
-  res.json({ reviews: reviews.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) });
+  try {
+    await connectToDatabase();
+    const reviews = await Review.find().sort({ createdAt: -1 }).lean();
+    res.json({ reviews });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch reviews" });
+  }
 });
 
 app.post("/api/reviews", async (req, res) => {
-  const resourceSlug = cleanText(req.body.resourceSlug, 60);
-  const name = cleanText(req.body.name, 48);
-  const role = cleanText(req.body.role, 64);
-  const comment = cleanText(req.body.comment, 240);
-  const rating = Number(req.body.rating);
+  try {
+    await connectToDatabase();
+    
+    const resourceSlug = cleanText(req.body.resourceSlug, 60);
+    const name = cleanText(req.body.name, 48);
+    const role = cleanText(req.body.role, 64);
+    const comment = cleanText(req.body.comment, 240);
+    const rating = Number(req.body.rating);
 
-  if (!resources.some((resource) => resource.slug === resourceSlug)) {
-    return res.status(400).json({ message: "Choose a listed resource." });
+    const resourceExists = await Resource.exists({ slug: resourceSlug });
+    if (!resourceExists) {
+      return res.status(400).json({ message: "Choose a listed resource." });
+    }
+
+    if (!name || !comment || !Number.isFinite(rating) || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: "Name, rating, and review are required." });
+    }
+
+    const review = new Review({
+      id: `rvw-${Date.now()}`,
+      resourceSlug,
+      name,
+      role: role || "Designer",
+      rating,
+      comment
+    });
+
+    await review.save();
+    res.status(201).json({ review });
+  } catch (err) {
+    res.status(500).json({ message: "Database error." });
   }
-
-  if (!name || !comment || !Number.isFinite(rating) || rating < 1 || rating > 5) {
-    return res.status(400).json({ message: "Name, rating, and review are required." });
-  }
-
-  const reviews = await readJson(reviewsPath, seedReviews);
-  const review = {
-    id: `rvw-${Date.now()}`,
-    resourceSlug,
-    name,
-    role: role || "Designer",
-    rating,
-    comment,
-    createdAt: new Date().toISOString()
-  };
-  reviews.push(review);
-  await writeJson(reviewsPath, reviews);
-
-  res.status(201).json({ review });
 });
 
 // 404 Fallback - Always return JSON, not HTML
@@ -189,8 +264,14 @@ app.use((err, req, res, next) => {
 
 // Only start the server if we are running locally
 if (process.env.NODE_ENV !== "production") {
-  app.listen(port, () => {
+  app.listen(port, async () => {
     console.log(`DesignStocker API running on http://localhost:${port}`);
+    try {
+      await connectToDatabase();
+      console.log("Connected to MongoDB");
+    } catch (err) {
+      console.error("Failed to connect to MongoDB on startup", err);
+    }
   });
 }
 
