@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Sparkles, Save, ShieldCheck, ArrowLeft, Plus } from "lucide-react";
 import Link from "next/link";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function AdminPage() {
   const [password, setPassword] = useState("");
@@ -128,7 +128,7 @@ export default function AdminPage() {
                 alt="" 
                 width={28} 
                 height={28} 
-                style={{ borderRadius: "11px", objectFit: "contain" }} 
+                style={{ borderRadius: "10px", objectFit: "contain" }} 
               />
             </span>
             <h1>Resource Admin</h1>

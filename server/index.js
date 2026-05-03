@@ -3,8 +3,8 @@ import express from "express";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { categories, resources } from "../data/resources.js";
-import { getStats, seedReviews } from "../data/seed.js";
+import { categories, resources } from "./data/resources.js";
+import { getStats, seedReviews } from "./data/seed.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,12 +14,12 @@ const resourcesPath = path.join(dataDir, "resources.json");
 const categoriesPath = path.join(dataDir, "categories.json");
 
 // Simple Admin Auth
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "designerhubadmin2026";
+const ADMIN_SECRET = process.env.ADMIN_SECRET;
 
 const app = express();
-const port = process.env.API_PORT || 4000;
+const port = process.env.API_PORT;
 
-app.use(cors({ origin: process.env.WEB_ORIGIN || "http://localhost:3000" }));
+app.use(cors({ origin: process.env.WEB_ORIGIN }));
 app.use(express.json({ limit: "32kb" }));
 
 async function readJson(filePath, fallback) {

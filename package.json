@@ -4,13 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:web": "next dev -p 3000",
-    "dev:api": "node server/index.js",
+    "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "concurrently \"npm run start:api\" \"npm run start:web\"",
-    "start:web": "next start -p 3000",
-    "start:api": "node server/index.js",
+    "start": "next start -p 3000",
     "lint": "next lint"
   },
   "dependencies": {
@@ -19,9 +15,6 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "clsx": "^2.1.1",
-    "concurrently": "^9.2.1",
-    "cors": "^2.8.5",
-    "express": "^5.1.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.468.0",
     "next": "^15.5.6",
